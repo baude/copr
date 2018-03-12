@@ -144,7 +144,8 @@ providing packages with %{import_path} prefix.
 %endif
 
 %prep
-%setup -q
+%setup
+cd cni-%{shortcommit}
 
 %build
 ./build.sh
