@@ -38,7 +38,7 @@ Release:        git%{shortcommit}%{?dist}
 Summary:        Libraries for writing CNI plugin
 License:        ASL 2.0
 URL:            https://%{provider_prefix}
-Source0:        https://%{provider_prefix}/%{version}.tar.gz
+Source0:        {provider_prefix}/%{shortcommit}.tar.gz
 
 ExcludeArch:    ppc64
 # If go_compiler is not set to 1, there is no virtual provide. Use golang instead.
