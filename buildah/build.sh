@@ -11,6 +11,8 @@ package=buildah
 clone_url=https://github.com/projectatomic/buildah
 
 git clone ${clone_url}
+cd builah
+
 COMMIT=$(git rev-parse HEAD)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
 COMMIT_NUM=$(git rev-list HEAD --count)
