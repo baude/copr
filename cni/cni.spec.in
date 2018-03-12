@@ -33,12 +33,12 @@
 %global shortcommit     %(c=%{commit}; echo ${c:0:7})
 
 Name:           containernetworking-cni
-Version:        0.6.0
+Version:        0.6.1
 Release:        git%{shortcommit}%{?dist}
 Summary:        Libraries for writing CNI plugin
 License:        ASL 2.0
 URL:            https://%{provider_prefix}
-Source0:        {provider_prefix}/%{shortcommit}.tar.gz
+Source0:        #SOURCE#
 
 ExcludeArch:    ppc64
 # If go_compiler is not set to 1, there is no virtual provide. Use golang instead.
