@@ -2,26 +2,27 @@
 # https://docs.pagure.org/copr.copr/custom_source_method.html#custom-source-method
 
 mkdir -p results
+
 resultdir=$(readlink -f results)
 set -x
-set -e
+#set -e
 
-git clone https://github.com/containernetworking/plugins
-cd plugins
+package=buildah
+clone_url=https://github.com/projectatomic/buildah
 
+git clone ${clone_url}
 COMMIT=$(git rev-parse HEAD)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
 COMMIT_NUM=$(git rev-list HEAD --count)
 COMMIT_DATE=$(date --date="@$(git show -s --format=%ct HEAD)" +%Y%m%d)
 
-git archive --prefix "cni-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "${resultdir}/cni-${COMMIT_SHORT}.tar.gz"
-cd ../
+git archive --prefix "${package}-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "${resultdir}/${package}-${COMMIT_SHORT}.tar.gz"
 
-curl -O ${resultdir}/cni.spec.in https://raw.githubusercontent.com/baude/copr/master/cni.spec.in
+curl -o ${resultdir}/${package}.spec.in https://raw.githubusercontent.com/baude/copr/master/${package}/${package}.spec.in
 
 sed "s,#COMMIT#,${COMMIT},;
      s,#SHORTCOMMIT#,${COMMIT_SHORT},;
      s,#COMMITNUM#,${COMMIT_NUM},;
      s,#COMMITDATE#,${COMMIT_DATE}," \
-         ${resultdir}/cni.spec.in > ${resultdir}/cni.spec
+         ${resultdir}/${package}.spec.in > ${resultdir}/${package}.spec
 

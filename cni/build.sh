@@ -17,7 +17,7 @@ COMMIT_DATE=$(date --date="@$(git show -s --format=%ct HEAD)" +%Y%m%d)
 git archive --prefix "cni-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "${resultdir}/cni-${COMMIT_SHORT}.tar.gz"
 cd ../
 
-curl -O ${resultdir}/cni.spec.in https://raw.githubusercontent.com/baude/copr/master/cni.spec.in
+curl -o ${resultdir}/cni.spec.in https://raw.githubusercontent.com/baude/copr/master/cni.spec.in
 
 sed "s,#COMMIT#,${COMMIT},;
      s,#SHORTCOMMIT#,${COMMIT_SHORT},;
