@@ -1,17 +1,17 @@
 #!/bin/sh
 # https://docs.pagure.org/copr.copr/custom_source_method.html#custom-source-method
 
-mkdir -p results
-
-resultdir=$(readlink -f results)
 set -x
-#set -e
+set -e
+
+mkdir -p results
+resultdir=$(readlink -f results)
 
 package=buildah
 clone_url=https://github.com/projectatomic/buildah
 
 git clone ${clone_url}
-cd builah
+cd buildah
 
 COMMIT=$(git rev-parse HEAD)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
