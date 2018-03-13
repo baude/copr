@@ -7,11 +7,11 @@ set -e
 mkdir -p results
 resultdir=$(readlink -f results)
 
-package=crio
+package=cri-o
 clone_url=https://github.com/kubernetes-incubator/cri-o
 
 git clone ${clone_url}
-cd buildah
+cd ${package}
 
 COMMIT=$(git rev-parse HEAD)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
