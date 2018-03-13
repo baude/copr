@@ -340,7 +340,7 @@ Requires:	socat
 %endif
 
 %prep
-%autosetup -Sgit -n %{name}-%{commit0}
+%autosetup -Sgit -n %{name}-%{shortcommit0}
 sed -i '/strip/d' pause/Makefile
 
 %build
