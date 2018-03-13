@@ -42,8 +42,9 @@ Summary:        CRI-O is the Kubernetes Container Runtime Interface for OCI-base
 License:        ASL 2.0
 URL:            https://%{provider_prefix}
 Source0:        #SOURCE#
-Source3:        https://raw.githubusercontent.com/baude/copr/master/crio/%{service_name}-network.sysconfig
-Source4:        https://raw.githubusercontent.com/baude/copr/master/crio/%{service_name}-storage.sysconfig
+Source3:        https://raw.githubusercontent.com/baude/copr/master/cri-o/crio-network.sysconfig
+Source4:        https://raw.githubusercontent.com/baude/copr/master/cri-o/crio-storage.sysconfig
+
 ExcludeArch:    ppc64
 # If go_compiler is not set to 1, there is no virtual provide. Use golang instead.
 BuildRequires:  %{?go_compiler:compiler(go-compiler)}%{!?go_compiler:golang}
