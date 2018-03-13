@@ -1,0 +1,766 @@
+%global with_debug 1
+%global with_devel 0
+%global with_unit_test 0
+
+%if 0%{?fedora} || 0%{?centos}
+%global with_check 1
+%global with_integration_tests 1
+%else
+%global with_check 0
+%global with_integration_tests 0
+%endif
+
+%if 0%{?with_debug}
+%global _dwz_low_mem_die_limit 0
+%else
+%global debug_package   %{nil}
+%endif
+
+#%%if ! 0%%{?gobuild:1}
+%define gobuild(o:) go build -tags="$BUILDTAGS rpm_crashtraceback" -ldflags "${LDFLAGS:-} -B 0x$(head -c20 /dev/urandom|od -An -tx1|tr -d ' \\n')" -a -v -x %{?**};
+#%%endif
+
+%global provider        github
+%global provider_tld    com
+%global project         kubernetes-incubator
+%global repo            cri-o
+# https://github.com/kubernetes-incubator/cri-o
+%global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
+%global import_path     %{provider_prefix}
+%global commit0         #COMMIT#
+%global shortcommit0    %(c=%{commit0}; echo ${c:0:7})
+
+%global service_name crio
+
+Name:           cri-o
+%if 0%{?fedora}
+Epoch: 2
+%endif
+Version:        1.9.10
+Release:        1.git%{shortcommit0}%{?dist}
+Summary:        CRI-O is the Kubernetes Container Runtime Interface for OCI-based containers
+License:        ASL 2.0
+URL:            https://%{provider_prefix}
+Source0:        #SOURCE#
+Source3:        https://raw.githubusercontent.com/baude/copr/master/crio/%{service_name}-network.sysconfig
+Source4:        https://raw.githubusercontent.com/baude/copr/master/crio/%{service_name}-storage.sysconfig
+ExcludeArch:    ppc64
+# If go_compiler is not set to 1, there is no virtual provide. Use golang instead.
+BuildRequires:  %{?go_compiler:compiler(go-compiler)}%{!?go_compiler:golang}
+BuildRequires:  btrfs-progs-devel
+BuildRequires:  git
+BuildRequires:  glib2-devel
+BuildRequires:  glibc-static
+BuildRequires:  go-md2man
+BuildRequires:  gpgme-devel
+BuildRequires:  libassuan-devel
+BuildRequires:  pkgconfig(systemd)
+BuildRequires:  device-mapper-devel
+BuildRequires:  make
+Requires(pre):  container-selinux
+Requires:       socat
+Requires:       iptables
+Requires:       iproute
+Requires:       conmon
+%if 0%{?fedora}
+BuildRequires:  libseccomp-static
+Requires:       runc >= 2:1.0.0-15
+Requires:       skopeo-containers >= 0.1.24-6
+Recommends:     containernetworking-plugins >= 0.5.2-7
+Provides:       %{service_name} = %{epoch}:%{version}-%{release}
+Provides:       ocid = %{epoch}:%{version}-%{release}
+%else
+BuildRequires:  libseccomp-devel
+Requires:       runc >= 1.0.0-15
+Requires:       skopeo-containers >= 1:0.1.24-6
+Requires:       containernetworking-plugins >= 0.5.2-7
+Provides:       %{service_name} = %{version}-%{release}
+Provides:       ocid = %{version}-%{release}
+%endif
+Obsoletes:      ocid <= 0.3
+
+%description
+%{summary}
+
+%if 0%{?with_devel}
+%package devel
+Summary:       %{summary}
+BuildArch:     noarch
+Requires:      golang(github.com/BurntSushi/toml)
+Requires:      golang(github.com/Microsoft/go-winio)
+Requires:      golang(github.com/Sirupsen/logrus)
+Requires:      golang(github.com/containernetworking/cni/libcni)
+Requires:      golang(github.com/containernetworking/cni/pkg/invoke)
+Requires:      golang(github.com/containernetworking/cni/pkg/types)
+Requires:      golang(github.com/containernetworking/cni/pkg/version)
+Requires:      golang(github.com/containers/image/directory)
+Requires:      golang(github.com/containers/image/directory/explicitfilepath)
+Requires:      golang(github.com/containers/image/docker)
+Requires:      golang(github.com/containers/image/docker/policyconfiguration)
+Requires:      golang(github.com/containers/image/image)
+Requires:      golang(github.com/containers/image/manifest)
+Requires:      golang(github.com/containers/image/oci/layout)
+Requires:      golang(github.com/containers/image/openshift)
+Requires:      golang(github.com/containers/image/transports)
+Requires:      golang(github.com/containers/image/types)
+Requires:      golang(github.com/containers/image/version)
+Requires:      golang(github.com/docker/distribution)
+Requires:      golang(github.com/docker/distribution/context)
+Requires:      golang(github.com/docker/distribution/digest)
+Requires:      golang(github.com/docker/distribution/reference)
+Requires:      golang(github.com/docker/distribution/uuid)
+Requires:      golang(github.com/docker/docker/api/types/blkiodev)
+Requires:      golang(github.com/docker/docker/api/types/container)
+Requires:      golang(github.com/docker/docker/api/types/mount)
+Requires:      golang(github.com/docker/docker/api/types/strslice)
+Requires:      golang(github.com/docker/docker/api/types/versions)
+Requires:      golang(github.com/docker/docker/daemon/graphdriver)
+Requires:      golang(github.com/docker/docker/image)
+Requires:      golang(github.com/docker/docker/image/v1)
+Requires:      golang(github.com/docker/docker/layer)
+Requires:      golang(github.com/docker/docker/pkg/archive)
+Requires:      golang(github.com/docker/docker/pkg/chrootarchive)
+Requires:      golang(github.com/docker/docker/pkg/fileutils)
+Requires:      golang(github.com/docker/docker/pkg/homedir)
+Requires:      golang(github.com/docker/docker/pkg/idtools)
+Requires:      golang(github.com/docker/docker/pkg/ioutils)
+Requires:      golang(github.com/docker/docker/pkg/longpath)
+Requires:      golang(github.com/docker/docker/pkg/mount)
+Requires:      golang(github.com/docker/docker/pkg/plugins)
+Requires:      golang(github.com/docker/docker/pkg/plugins/transport)
+Requires:      golang(github.com/docker/docker/pkg/pools)
+Requires:      golang(github.com/docker/docker/pkg/promise)
+Requires:      golang(github.com/docker/docker/pkg/random)
+Requires:      golang(github.com/docker/docker/pkg/reexec)
+Requires:      golang(github.com/docker/docker/pkg/registrar)
+Requires:      golang(github.com/docker/docker/pkg/stringid)
+Requires:      golang(github.com/docker/docker/pkg/system)
+Requires:      golang(github.com/docker/docker/pkg/truncindex)
+Requires:      golang(github.com/docker/docker/plugin/getter)
+Requires:      golang(github.com/docker/docker/reference)
+Requires:      golang(github.com/docker/go-connections/nat)
+Requires:      golang(github.com/docker/go-connections/sockets)
+Requires:      golang(github.com/docker/go-connections/tlsconfig)
+Requires:      golang(github.com/docker/go-units)
+Requires:      golang(github.com/docker/libtrust)
+Requires:      golang(github.com/ghodss/yaml)
+Requires:      golang(github.com/gogo/protobuf/proto)
+Requires:      golang(github.com/golang/glog)
+Requires:      golang(github.com/golang/protobuf/proto)
+Requires:      golang(github.com/gorilla/context)
+Requires:      golang(github.com/gorilla/mux)
+Requires:      golang(github.com/imdario/mergo)
+Requires:      golang(github.com/opencontainers/image-spec/specs-go)
+Requires:      golang(github.com/opencontainers/image-spec/specs-go/v1)
+Requires:      golang(github.com/opencontainers/runc/libcontainer/label)
+Requires:      golang(github.com/opencontainers/runc/libcontainer/selinux)
+Requires:      golang(github.com/opencontainers/runc/libcontainer/system)
+Requires:      golang(github.com/opencontainers/runc/libcontainer/user)
+Requires:      golang(github.com/opencontainers/runtime-spec/specs-go)
+Requires:      golang(github.com/opencontainers/runtime-tools/generate)
+Requires:      golang(github.com/rajatchopra/ocicni)
+Requires:      golang(github.com/syndtr/gocapability/capability)
+Requires:      golang(github.com/tchap/go-patricia/patricia)
+Requires:      golang(github.com/vbatts/tar-split/archive/tar)
+Requires:      golang(github.com/vbatts/tar-split/tar/asm)
+Requires:      golang(github.com/vbatts/tar-split/tar/storage)
+Requires:      golang(golang.org/x/net/context)
+Requires:      golang(golang.org/x/net/http2)
+Requires:      golang(golang.org/x/net/http2/hpack)
+Requires:      golang(golang.org/x/net/internal/timeseries)
+Requires:      golang(golang.org/x/net/proxy)
+Requires:      golang(golang.org/x/net/trace)
+Requires:      golang(golang.org/x/sys/unix)
+Requires:      golang(google.golang.org/grpc)
+Requires:      golang(google.golang.org/grpc/codes)
+Requires:      golang(google.golang.org/grpc/credentials)
+Requires:      golang(google.golang.org/grpc/grpclog)
+Requires:      golang(google.golang.org/grpc/internal)
+Requires:      golang(google.golang.org/grpc/metadata)
+Requires:      golang(google.golang.org/grpc/naming)
+Requires:      golang(google.golang.org/grpc/peer)
+Requires:      golang(google.golang.org/grpc/transport)
+Requires:      golang(gopkg.in/yaml.v2)
+Requires:      golang(k8s.io/kubernetes/pkg/fields)
+Requires:      golang(k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime)
+Requires:      golang(k8s.io/kubernetes/pkg/selection)
+Requires:      golang(k8s.io/kubernetes/pkg/util/errors)
+Requires:      golang(k8s.io/kubernetes/pkg/util/homedir)
+Requires:      golang(k8s.io/kubernetes/pkg/util/net)
+Requires:      golang(k8s.io/kubernetes/pkg/util/sets)
+
+Provides:      golang(%{import_path}/oci) = %{version}-%{release}
+Provides:      golang(%{import_path}/server) = %{version}-%{release}
+Provides:      golang(%{import_path}/utils) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/BurntSushi/toml)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/Sirupsen/logrus)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containernetworking/cni/libcni)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containernetworking/cni/pkg/invoke)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containernetworking/cni/pkg/types)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containernetworking/cni/pkg/version)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/directory)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/directory/explicitfilepath)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/docker)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/docker/policyconfiguration)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/image)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/manifest)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/oci/layout)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/openshift)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/transports)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/types)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/containers/image/version)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/coreos/go-systemd/daemon)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/distribution)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/distribution/context)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/distribution/digest)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/distribution/reference)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/distribution/uuid)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/api/types/blkiodev)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/api/types/container)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/api/types/mount)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/api/types/strslice)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/api/types/versions)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/daemon/graphdriver)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/image)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/image/v1)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/layer)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/archive)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/chrootarchive)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/fileutils)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/homedir)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/idtools)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/ioutils)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/mount)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/plugins)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/plugins/transport)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/pools)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/promise)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/random)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/reexec)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/registrar)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/stringid)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/system)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/pkg/truncindex)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/plugin/getter)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/docker/reference)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/go-connections/nat)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/go-connections/sockets)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/go-connections/tlsconfig)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/go-units)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/docker/libtrust)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/ghodss/yaml)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/gogo/protobuf/proto)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/golang/glog)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/golang/protobuf/proto)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/gorilla/context)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/gorilla/mux)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/imdario/mergo)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/opencontainers/image-spec/specs-go)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/opencontainers/image-spec/specs-go/v1)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/opencontainers/runc/libcontainer/label)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/opencontainers/runc/libcontainer/selinux)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/opencontainers/runc/libcontainer/system)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/opencontainers/runc/libcontainer/user)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/opencontainers/runtime-spec/specs-go)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/opencontainers/runtime-tools/generate)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/rajatchopra/ocicni)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/syndtr/gocapability/capability)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/tchap/go-patricia/patricia)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/urfave/cli)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/vbatts/tar-split/archive/tar)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/vbatts/tar-split/tar/asm)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/github.com/vbatts/tar-split/tar/storage)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/golang.org/x/net/context)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/golang.org/x/net/http2)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/golang.org/x/net/http2/hpack)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/golang.org/x/net/proxy)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/golang.org/x/net/trace)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/golang.org/x/sys/unix)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/google.golang.org/grpc)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/google.golang.org/grpc/codes)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/google.golang.org/grpc/credentials)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/google.golang.org/grpc/grpclog)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/google.golang.org/grpc/metadata)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/google.golang.org/grpc/naming)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/google.golang.org/grpc/peer)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/google.golang.org/grpc/transport)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/gopkg.in/yaml.v2)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/k8s.io/kubernetes/pkg/fields)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/k8s.io/kubernetes/pkg/kubelet/api/v1alpha1/runtime)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/k8s.io/kubernetes/pkg/selection)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/k8s.io/kubernetes/pkg/util/errors)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/k8s.io/kubernetes/pkg/util/homedir)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/k8s.io/kubernetes/pkg/util/net)) = %{version}-%{release}
+Provides:      bundled(golang(%{import_path}/vendor/src/k8s.io/kubernetes/pkg/util/sets)) = %{version}-%{release}
+
+%description devel
+%{summary}
+
+This package contains library source intended for
+building other packages which use import path with
+%{import_path} prefix.
+%endif
+
+%if 0%{?with_unit_test} && 0%{?with_devel}
+%package unit-test-devel
+Summary:         Unit tests for %{name} package
+%if 0%{?with_check}
+#Here comes all BuildRequires: PACKAGE the unit tests
+#in %%check section need for running
+%endif
+
+# test subpackage tests code from devel subpackage
+Requires:        %{name}-devel = %{version}-%{release}
+
+%description unit-test-devel
+%{summary}
+
+This package contains unit tests for project
+providing packages with %{import_path} prefix.
+%endif
+
+%package -n conmon
+Summary: OCI container runtime monitor
+
+%description -n conmon
+conmon is an OCI container runtime monitor.
+
+%if 0%{?with_integration_tests}
+%package integration-tests
+Summary:	Integration tests for %{name}
+Requires:	%{service_name} = %{epoch}:%{version}-%{release}
+Requires:	bats
+Requires:	containernetworking-cni
+Requires:	nmap-ncat
+Requires:	socat
+
+%description integration-tests
+%{summary}
+%endif
+
+%prep
+%autosetup -Sgit -n %{name}-%{commit0}
+sed -i '/strip/d' pause/Makefile
+
+%build
+mkdir _output
+pushd _output
+mkdir -p src/%{provider}.%{provider_tld}/{%{project},opencontainers}
+ln -s $(dirs +1 -l) src/%{import_path}
+popd
+
+ln -s vendor src
+export GOPATH=$(pwd)/_output:$(pwd):%{gopath}
+export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) containers_image_ostree_stub"
+
+GOPATH=$GOPATH BUILDTAGS=$BUILDTAGS %gobuild -o bin/%{service_name} %{import_path}/cmd/%{service_name}
+BUILDTAGS=$BUILDTAGS make conmon pause docs
+
+./bin/%{service_name} \
+  --selinux=true \
+  --storage-driver=overlay \
+  --conmon /usr/libexec/%{service_name}/conmon \
+  --cni-plugin-dir /usr/libexec/cni \
+  --default-mounts /usr/share/rhel/secrets:/run/secrets \
+%if 0%{?centos}
+  --storage-opt overlay.override_kernel_check=1 \
+%endif
+  --cgroup-manager=systemd config > %{service_name}.conf
+
+%if 0%{?with_integration_tests}
+export GOPATH=$(pwd)/_output
+for i in bin2img copyimg checkseccomp; do
+    GOPATH=$GOPATH BUILDTAGS=$BUILDTAGS %gobuild -o test/$i/$i %{provider_prefix}/test/$i
+done
+%endif
+
+%install
+sed -i 's/\/usr\/local\/bin\/crio/\/usr\/bin\/crio/g' contrib/systemd/%{service_name}.service
+make DESTDIR=%{buildroot} PREFIX=%{buildroot}%{_prefix} install.config install.systemd
+
+# install binaries
+install -dp %{buildroot}{%{_bindir},%{_libexecdir}/%{service_name}}
+install -p -m 755 bin/%{service_name} %{buildroot}%{_bindir}
+install -p -m 755 bin/conmon %{buildroot}%{_libexecdir}/%{service_name}
+install -p -m 755 bin/pause %{buildroot}%{_libexecdir}/%{service_name}
+
+install -dp %{buildroot}%{_sysconfdir}/cni/net.d
+install -p -m 644 contrib/cni/10-crio-bridge.conf %{buildroot}%{_sysconfdir}/cni/net.d/100-crio-bridge.conf
+install -p -m 644 contrib/cni/99-loopback.conf %{buildroot}%{_sysconfdir}/cni/net.d/200-loopback.conf
+
+install -dp %{buildroot}%{_sysconfdir}/sysconfig
+install -p -m 644 %{SOURCE3} %{buildroot}%{_sysconfdir}/sysconfig/%{service_name}-network
+install -p -m 644 %{SOURCE4} %{buildroot}%{_sysconfdir}/sysconfig/%{service_name}-storage
+
+install -dp %{buildroot}%{_mandir}/man{1,5,8}
+install -m 644 docs/*.5 %{buildroot}%{_mandir}/man5
+install -m 644 docs/*.8 %{buildroot}%{_mandir}/man8
+
+mkdir -p %{buildroot}%{_sharedstatedir}/containers
+
+# source codes for building projects
+%if 0%{?with_devel}
+install -d -p %{buildroot}/%{gopath}/src/%{import_path}/
+echo "%%dir %%{gopath}/src/%%{import_path}/." >> devel.file-list
+# find all *.go but no *_test.go files and generate devel.file-list
+for file in $(find . -iname "*.go" \! -iname "*_test.go") ; do
+    echo "%%dir %%{gopath}/src/%%{import_path}/$(dirname $file)" >> devel.file-list
+    install -d -p %{buildroot}/%{gopath}/src/%{import_path}/$(dirname $file)
+    cp -pav $file %{buildroot}/%{gopath}/src/%{import_path}/$file
+    echo "%%{gopath}/src/%%{import_path}/$file" >> devel.file-list
+done
+%endif
+
+# testing files for this project
+%if 0%{?with_unit_test} && 0%{?with_devel}
+install -d -p %{buildroot}/%{gopath}/src/%{import_path}/
+# find all *_test.go files and generate unit-test.file-list
+for file in $(find . -iname "*_test.go"); do
+    echo "%%dir %%{gopath}/src/%%{import_path}/$(dirname $file)" >> devel.file-list
+    install -d -p %{buildroot}/%{gopath}/src/%{import_path}/$(dirname $file)
+    cp -pav $file %{buildroot}/%{gopath}/src/%{import_path}/$file
+    echo "%%{gopath}/src/%%{import_path}/$file" >> unit-test-devel.file-list
+done
+%endif
+
+%if 0%{?with_integration_tests}
+install -d -p %{buildroot}/%{_datadir}/%{name}/test
+cp -r test %{buildroot}/%{_datadir}/%{name}/
+
+install -d -p %{buildroot}/etc/containers/registries.d
+cp test/redhat_sigstore.yaml %{buildroot}/etc/containers/registries.d/registry.access.redhat.com.yaml
+%endif
+
+%if 0%{?with_devel}
+sort -u -o devel.file-list devel.file-list
+%endif
+
+%check
+%if 0%{?with_check} && 0%{?with_unit_test} && 0%{?with_devel}
+export GOPATH=%{buildroot}/%{gopath}:$(pwd)/Godeps/_workspace:%{gopath}
+
+%endif
+
+%post
+%systemd_post %{service_name}
+
+%preun
+%systemd_preun %{service_name}
+
+%postun
+%systemd_postun_with_restart %{service_name}
+
+#define license tag if not already defined
+%{!?_licensedir:%global license %doc}
+
+%if 0%{?with_devel}
+%files devel -f devel.file-list
+%license LICENSE
+%doc README.md code-of-conduct.md
+%dir %{gopath}/src/%{provider}.%{provider_tld}/%{project}
+%endif
+
+%if 0%{?with_unit_test} && 0%{?with_devel}
+%files unit-test-devel -f unit-test-devel.file-list
+%license LICENSE
+%doc README.md code-of-conduct.md
+%endif
+
+%if 0%{?with_integration_tests}
+%files integration-tests
+%license LICENSE
+%doc README.md
+%{_datadir}/%{name}/test/*
+/etc/containers/registries.d/registry.access.redhat.com.yaml
+%endif
+
+%files
+%license LICENSE
+%doc README.md
+%{_bindir}/%{service_name}
+%{_mandir}/man5/%{service_name}.conf.5*
+%{_mandir}/man8/%{service_name}.8*
+%dir %{_sysconfdir}/%{service_name}
+%config(noreplace) %{_sysconfdir}/%{service_name}/%{service_name}.conf
+%config(noreplace) %{_sysconfdir}/%{service_name}/seccomp.json
+%config(noreplace) %{_sysconfdir}/sysconfig/%{service_name}-storage
+%config(noreplace) %{_sysconfdir}/sysconfig/%{service_name}-network
+%config(noreplace) %{_sysconfdir}/cni/net.d/100-%{service_name}-bridge.conf
+%config(noreplace) %{_sysconfdir}/cni/net.d/200-loopback.conf
+%config(noreplace) %{_sysconfdir}/crictl.yaml
+%dir %{_libexecdir}/%{service_name}
+%{_libexecdir}/%{service_name}/pause
+%{_unitdir}/%{service_name}.service
+%{_unitdir}/cri-o.service
+%{_unitdir}/%{service_name}-shutdown.service
+%dir %{_sharedstatedir}/containers
+%dir %{_datadir}/oci-umount
+%dir %{_datadir}/oci-umount/oci-umount.d
+%{_datadir}/oci-umount/oci-umount.d/%{service_name}-umount.conf
+
+%files -n conmon
+%license LICENSE
+%doc README.md
+%{_libexecdir}/%{service_name}/conmon
+
+%changelog
+* Tue Mar 13 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.10-1.git8723732
+- bump to v1.9.10
+
+* Fri Mar 09 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.9-1.git4d7e7dc
+- bump to v1.9.9
+
+* Thu Mar 01 2018 Lokesh Mandvekar <lsm5@fedoraproject.org> - 2:1.9.8-1.git7d9d2aa
+- bump to v1.9.8
+- enable integration tests for centos
+
+* Fri Feb 23 2018 Lokesh Mandvekar <lsm5@fedoraproject.org> - 2:1.9.7-2.gita98f9c9
+- make sure correct version in changelog
+
+* Fri Feb 23 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.7-1.gita98f9c9
+- Merge pull request #1357 from runcom/netns-fixes
+- sandbox_stop: close/remove the netns _after_ stopping the containers
+- sandbox net: set netns closed after actaully closing it
+
+* Wed Feb 21 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.6-1.git5e48c92
+- vendor: update c/image to handle text/plain from registries
+
+* Fri Feb 16 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.5-1.git125ec8a
+- image: Add lock around image cache access
+
+* Thu Feb 15 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.4-1.git28c7dee
+- imageService: cache information about images
+- container_create: correctly set user
+- system container: add /var/tmp as RW
+
+* Sun Feb 11 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.3-1.git63ea1dd
+- Update containers/image and containers/storage
+-   Pick up lots of fixes in image and storage library
+
+* Thu Feb 8 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.2-1.gitb066a83
+- sandbox: fix sandbox logPath when crio restarts
+- syscontainers, rhel: add ADDTL_MOUNTS
+- Adapt to recent containers/image API updates
+- container_create: only bind mount /etc/hosts if not provided by k8s
+
+* Wed Feb 07 2018 Fedora Release Engineering <releng@fedoraproject.org> - 2:1.9.1-2.gitb066a83
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_28_Mass_Rebuild
+
+* Wed Jan 24 2018 Dan Walsh <dwalsh@redhat.com> - 2:1.9.1-1.gitb066a8
+- Final Release 1.9.1
+
+* Mon Dec 18 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 2:1.9.0-4.gita85ea60
+- need runc >= 2:1.0.0-15
+
+* Fri Dec 15 2017 Dan Walsh <dwalsh@redhat.com> - 2:1.9.0-3.gita85ea60
+- Final Release 1.9.0
+
+* Mon Dec 11 2017 Dan Walsh <dwalsh@redhat.com> - 2:1.9.0-1.beta.1.gita85ea60
+- Update to kubernetes 1.9.0 beta 2 cri requirements
+- container_exec: fix terminal true process json
+- lib: sandbox: refactor to memory store
+
+* Sun Dec 10 2017 Dan Walsh <dwalsh@redhat.com> - 2:1.9.0-1.beta.1.git0ab5e80
+- Update to kubernetes 1.9.0 beta 1 cri requirements
+
+* Sun Dec 10 2017 Dan Walsh <dwalsh@redhat.com> - 2:1.8.3-1.gitd9922a9
+-  container_create: fix apparmor from container config
+-  container_create: correctly set image and kube envs
+-  oci: do not append conmon env to container process
+-  container_exec: use process file with runc exec
+
+* Thu Nov 30 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 2:1.8.2-3.git3de7ab4c
+- cri-o should require conmon and not the other way around
+
+* Wed Nov 29 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 2:1.8.2-2.git3de7ab4c
+- add additional deps
+- From: Antonio Murdaca <runcom@redhat.com>
+
+* Wed Nov 29 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 2:1.8.2-1.git3de7ab4c
+- bump to v1.8.2
+
+* Tue Nov 28 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 2:1.8.1-2.git32d1708d
+- separate conmon into a separate subpackage
+
+* Wed Nov 22 2017 Dan Walsh <dwalsh@redhat.com> - 1.8.1-1.git32d1708d
+- Add /proc/scsi to masked paths
+
+* Mon Nov 13 2017 Dan Walsh <dwalsh@redhat.com> - 1.8.0-1.git80f54bc1
+- bump v1.8.0
+- Add support for Kubernetes v1.8
+- kpod support moved to the kpod package.
+
+* Thu Nov 09 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.3-1.git17bcfb4
+- bump to v1.0.3
+
+* Mon Oct 30 2017 Dan Walsh <dwalsh@redhat.com> - 1.0.2-1.git748bc46
+- Lots of bug fixes
+- Fixes to pass cri-tools tests
+
+* Wed Oct 25 2017 Dan Walsh <dwalsh@redhat.com> - 1.0.1-1.git64a30e1
+- Lots of bug fixes
+- Fixes to pass cri-tools tests
+
+* Mon Oct 16 2017 Dan Walsh <dwalsh@redhat.com> - 1.0.0-6.gita636972
+- Add epoch to make sure that this installs
+
+* Mon Oct 16 2017 Dan Walsh <dwalsh@redhat.com> - 1.0.0-5.gita636972
+- Get the correct checksum
+
+* Fri Oct 13 2017 Dan Walsh <dwalsh@redhat.com> - 1.0.0-4.gitcd1bac5
+- Release v1.0.0
+-  Performance improvements
+-  Add secrets patch to default mount directories from the host into containers
+-  Add kpod login/logout
+-  Change debug flag to log-level, allows admin to specify the loggin level
+-  Bump to kube v1.7.8
+-  Build with go 1.8.4
+
+* Tue Oct 03 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0-3.rc3.gitd2c6f64
+- build v1.0.0-rc3 tag
+
+* Tue Oct 03 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0-2.rc3.dev.gita8ea146
+- adjust runc dep for CentOS Virt SIG builds
+
+* Tue Oct 03 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0-1.rc3.dev.gita8ea146
+- bump to 1.0.0-rc3.dev
+- built commit a8ea146
+
+* Wed Sep 20 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0-1.rc2.git6784a66
+- bump to v1.0.0-rc2
+
+* Tue Sep 12 2017 Dan Walsh <dwalsh@redhat.com> - 1.0.0.rc1-2.gitbb1da97
+- Change default storage to overlay not overlay2, which shoulf fix issues with kpod working out of the box.
+
+* Fri Sep 8 2017 Dan Walsh <dwalsh@redhat.com> - 1.0.0.rc1-1.gitbb1da97
+-  Bugs, stability and performance fixes
+-  Moved from kubernetes 1.6 to 1.7
+-  cadvisor isupport
+-  Full kube e2e tests coverage. We are now gating pull requests on kube e2e (we were gating them just on node-e2e).
+-  Continue working on kpod
+-    kpod cp
+-    kpod diff
+-    kpod export
+-    kpod logs
+-    kpod mount
+-    kpod ps
+-    kpod rename
+-    kpod stats
+-    kpod umount
+
+* Tue Sep 5 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0.beta.0-3.gitf9387ac
+- btrfs_noversion in BUILDTAGS for previous build was in error
+
+* Tue Sep 5 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0.beta.0-2.gitf9387ac
+- bump to latest master
+- use runc >= 2:1.0.0-10
+
+* Thu Aug 3 2017 Dan Walsh <dwalsh@redhat.com> - 1.0.0.beta.0-1.git66d96e7
+- Beta Release
+-   Additional registry support
+-   Daemon pids-limit support
+-   cri-o daemon now supports a default pid-limit on all containers to prevent fork-bombs. This is configurable by admins through a flag or /etc/crio/crio.conf
+-   Configurable image volume support
+-   Bugs and Stability fixes
+-   OCI 1.0 runtime support
+-     Dropped internal runc, and now use systems runc 
+
+* Wed Aug 02 2017 Fedora Release Engineering <releng@fedoraproject.org> - 1.0.0.alpha.0-5.gitfa25b38
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Binutils_Mass_Rebuild
+
+* Wed Jul 26 2017 Fedora Release Engineering <releng@fedoraproject.org> - 1.0.0.alpha.0-4.gitfa25b38
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_27_Mass_Rebuild
+
+* Thu Jul 13 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0.alpha.0-3.gitfa25b38
+- enable all arches except ppc64 because it's been removed from goarches
+
+* Thu Jul 13 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0.alpha.0-2.gitfa25b38
+- built commit fa25b38
+- Provides: crio
+
+* Fri Jun 30 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 1.0.0.alpha.0-1.git91977d3
+- built commit 91977d3
+- remove cri-o-cni subpackage
+- require containernetworking-plugins >= 0.5.2-2 (same as containernetworking-cni)
+- skip s390x build (rhbz#1466865)
+
+* Fri Jun 23 2017 Antonio Murdaca <runcom@fedoraproject.org> - 1.0.0.alpha.0-0.git5dcbdc0.3
+- rebuilt to include cri-o-cni sub package
+
+* Wed Jun 21 2017 Antonio Murdaca <runcom@fedoraproject.org> - 1.0.0.alpha.0-0.git5dcbdc0.2
+- rebuilt for s390x
+
+* Wed Jun 21 2017 Antonio Murdaca <runcom@fedoraproject.org> - 1.0.0.alpha.0-0.git5dcbdc0.1
+- built first alpha release
+
+* Fri May 5 2017 Dan Walsh <dwalsh@redhat.com> 0.3-0.gitf648cd6e
+- Bump up version to 0.3
+
+* Tue Mar 21 2017 Dan Walsh <dwalsh@redhat.com> 0.2-1.git7d7570e
+- Bump up version to 0.2
+
+* Tue Mar 21 2017 Dan Walsh <dwalsh@redhat.com> 0.1-1.git9bf26b5
+- Bump up version to 0.1
+
+* Mon Feb 13 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.15.git0639f06
+- built commit 0639f06
+- packaging workarounds for 'go install'
+
+* Wed Feb 8 2017 Dan Walsh <dwalsh@redhat.com> 0-0.14.git6bd7c53
+- Use newer versions of runc
+- Applying k8s kubelet v3 api to cri-o server
+- Applying k8s.io v3 API for ocic and ocid
+- doc: Add instruction to run cri-o with kubernetes
+- Lots of  updates of container/storage and containers/image
+
+* Mon Jan 23 2017 Peter Robinson <pbrobinson@fedoraproject.org> 0-0.13.git7cc8492
+- Build on all kubernetes arches
+
+* Fri Jan 20 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.12.git7cc8492
+- add bash completion
+- From: Daniel J Walsh <dwalsh@redhat.com>
+
+* Thu Jan 19 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.11.git7cc8492
+- remove trailing whitespace from unitfile
+
+* Thu Jan 19 2017 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.10.git7cc8492
+- built commit 7cc8492
+- packaging fixes from Nalin Dahyabhai <nalin@redhat.com>
+
+* Thu Jan 19 2017 Dan Walsh <dwalsh@redhat.com> - 0-0.9.gitb9dc097
+- Change to require skopeo-containers
+- Merge Nalind/storage patch
+-    Now uses Storage for Image Management
+
+* Mon Jan 16 2017 Lokesh Manvekar <lsm5@fedoraproject.org> - 0-0.8.git2e6070f
+- packaging changes from Nalin Dahyabhai <nalin@redhat.com>
+- Don't make the ExecReload setting part of the ExecStart setting.
+- Create ocid.conf in install, not in check.
+- Own /etc/ocid.
+- Install an "anything goes" pulling policy for a default.
+
+* Thu Dec 22 2016 Dan Walsh <dwalsh@redhat.com> - 0-0.7.git2e6070f
+- Switch locate to /var/lib/containers for images
+
+* Thu Dec 22 2016 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.6.git2e6070f
+- built commit 2e6070f
+
+* Wed Dec 21 2016 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.5.git36dfef5
+- install plugins into /usr/libexec/ocid/cni/
+- require runc >= 1.0.0 rc2
+
+* Wed Dec 21 2016 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.4.git36dfef5
+- built runcom/alpha commit 36dfef5
+- cni bundled for now
+
+* Thu Dec 15 2016 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.3.gitc57530e
+- Resolves: #1392977 - first upload to Fedora
+- add build deps, enable only for x86_64 (doesn't build on i686)
+
+* Thu Dec 15 2016 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.2.gitc57530e
+- add Godeps.json
+
+* Tue Nov 08 2016 Lokesh Mandvekar <lsm5@fedoraproject.org> - 0-0.1.gitc57530e
+- First package for Fedora
+
+
