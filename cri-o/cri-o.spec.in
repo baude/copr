@@ -355,7 +355,7 @@ export GOPATH=$(pwd)/_output:$(pwd):%{gopath}
 export BUILDTAGS="selinux seccomp $(hack/btrfs_installed_tag.sh) $(hack/btrfs_tag.sh) $(hack/libdm_tag.sh) containers_image_ostree_stub"
 
 GOPATH=$GOPATH BUILDTAGS=$BUILDTAGS %gobuild -o bin/%{service_name} %{import_path}/cmd/%{service_name}
-BUILDTAGS=$BUILDTAGS make conmon pause docs
+BUILDTAGS=$BUILDTAGS make all
 
 ./bin/%{service_name} \
   --selinux=true \
