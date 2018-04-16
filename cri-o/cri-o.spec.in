@@ -36,7 +36,7 @@ Name:           cri-o
 %if 0%{?fedora}
 Epoch: 2
 %endif
-Version:        1.9.10
+Version:        1.10.1
 Release:        1.git%{shortcommit0}%{?dist}
 Summary:        CRI-O is the Kubernetes Container Runtime Interface for OCI-based containers
 License:        ASL 2.0
