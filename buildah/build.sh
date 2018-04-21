@@ -16,7 +16,7 @@ cd buildah
 COMMIT=$(git rev-parse HEAD)
 COMMIT_SHORT=$(git rev-parse --short HEAD)
 COMMIT_NUM=$(git rev-list HEAD --count)
-COMMIT_DATE=$(date --date="@$(git show -s --format=%ct HEAD)" +%s)
+COMMIT_DATE=$(date +%s)
 TARBALL="${resultdir}/cni-${COMMIT_SHORT}.tar.gz"
 
 git archive --prefix "${package}-${COMMIT_SHORT}/" --format "tar.gz" HEAD -o "${TARBALL}"
