@@ -390,6 +390,7 @@ install -dp %{buildroot}%{_unitdir}
 pushd contrib/python
 %{__python3} setup.py install --root %{buildroot}
 popd
+%endif
 
 # source codes for building projects
 %if 0%{?with_devel}
