@@ -33,7 +33,7 @@
 %global shortcommit     %(c=%{commit}; echo ${c:0:7})
 
 Name:           containernetworking-cni
-Version:        0.7.0
+Version:        0.7.1
 Release:        git%{shortcommit}%{?dist}
 Summary:        Libraries for writing CNI plugin
 License:        ASL 2.0
