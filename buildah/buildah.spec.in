@@ -22,7 +22,7 @@
 %global provider_prefix %{provider}.%{provider_tld}/%{project}/%{repo}
 %global import_path     %{provider_prefix}
 %global commit         #COMMIT#
-%global shortcommit    %(c=%{commit}; echo ${c:0:7})
+%global shortcommit    %(c=%{commit}; echo ${c:0:8})
 
 Name:           buildah
 Version:        1.3
